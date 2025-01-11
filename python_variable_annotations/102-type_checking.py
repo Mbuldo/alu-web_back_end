@@ -5,11 +5,11 @@
 from typing import Tuple, List
 
 
-def zoom_array(lst: List, factor: int = 2) -> List:
+def zoom_array(lst: Tuple, factor: int = 2) -> List:
     """Return a list with each element repeated based on factor.
 
     Args:
-        lst (List): The input list to zoom
+        lst (Tuple): The input tuple to zoom
         factor (int): The number of times to repeat each element
 
     Returns:
@@ -22,7 +22,7 @@ def zoom_array(lst: List, factor: int = 2) -> List:
     return zoomed_in
 
 
-array = [12, 72, 91]
+array = (12, 72, 91)
 
 zoom_2x = zoom_array(array)
 

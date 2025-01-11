@@ -6,7 +6,6 @@ async comprehension operations.
 
 import asyncio
 import time
-from typing import float
 async_comprehension = __import__('1-async_comprehension').async_comprehension
 
 

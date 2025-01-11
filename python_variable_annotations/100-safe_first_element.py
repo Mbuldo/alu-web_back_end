@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Module containing a function that safely returns first element of sequence."""
+"""Module with function that safely returns first element of sequence."""
 
 
 from typing import Sequence, Any, Union

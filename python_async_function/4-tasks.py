@@ -6,7 +6,7 @@ n times with a specified max_delay and returns the delays in ascending order.
 
 import asyncio
 from typing import List
-from task_wait_random import task_wait_random
+task_wait_random = __import__('3-tasks').task_wait_random
 
 
 async def task_wait_n(n: int, max_delay: int) -> List[float]:
@@ -22,7 +22,7 @@ async def task_wait_n(n: int, max_delay: int) -> List[float]:
         List[float]: List of delays in ascending order.
     """
     delays: List[float] = []
-    
+
     async def gather_delay() -> None:
         """
         Helper coroutine to get delay and insert it in sorted position.
@@ -37,8 +37,8 @@ async def task_wait_n(n: int, max_delay: int) -> List[float]:
 
     # Create list of tasks
     tasks = [gather_delay() for _ in range(n)]
-    
+
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
-    
+
     return delays

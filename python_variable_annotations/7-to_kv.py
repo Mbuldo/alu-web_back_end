@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Module containing a type-annotated function that sums mixed number types."""
+"""Module containing a type-annotated function that returns a tuple."""
 
 
-from typing import List, Union
+from typing import Union, Tuple
 
 
-def sum_mixed_list(mxd_lst: List[Union[int, float]]) -> float:
-    """Return the sum of a list of integers and floats.
+def to_kv(k: str, v: Union[int, float]) -> Tuple[str, float]:
+   """Return a tuple with a string and square of a number.
 
-    Args:
-        mxd_lst (List[Union[int, float]]): The list of ints and floats to sum
+   Args:
+       k (str): The string to be used as first element
+       v (Union[int, float]): The number to be squared
 
-    Returns:
-        float: The sum of all numbers in mxd_lst
-    """
-    return float(sum(mxd_lst))
+   Returns:
+       Tuple[str, float]: A tuple containing k and the square of v
+   """
+   return (k, float(v ** 2))

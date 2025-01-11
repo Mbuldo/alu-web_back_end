@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Module containing a type-annotated function that returns a multiplier function."""
+"""Module containing a type-annotated function for creating multiplier."""
 
 
 from typing import Callable
 
 
 def make_multiplier(multiplier: float) -> Callable[[float], float]:
-   """Return a function that multiplies a float by multiplier.
+    """Create a function that multiplies a float by multiplier.
 
-   Args:
-       multiplier (float): The multiplication factor
+    Args:
+        multiplier (float): The number to multiply by
 
-   Returns:
-       Callable[[float], float]: A function that takes a float and returns float
-   """
-   return lambda x: x * multiplier
+    Returns:
+        Callable[[float], float]: A function that multiplies by multiplier
+    """
+    return lambda x: x * multiplier

@@ -22,7 +22,7 @@ async def wait_n(n: int, max_delay: int) -> List[float]:
         List[float]: List of delays in ascending order.
     """
     delays: List[float] = []
-    
+
     async def gather_delay() -> None:
         """
         Helper coroutine to get delay and insert it in sorted position.
@@ -36,8 +36,8 @@ async def wait_n(n: int, max_delay: int) -> List[float]:
 
     # Create list of tasks
     tasks = [gather_delay() for _ in range(n)]
-    
+
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
-    
+
     return delays

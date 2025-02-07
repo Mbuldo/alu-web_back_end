@@ -93,3 +93,28 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
         host=host,
         database=db_name
     )
+
+
+def main() -> None:
+    """
+    Retrieve and display filtered user data from database.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM users;")
+    
+    logger = get_logger()
+    fields = cursor.column_names
+
+    for row in cursor:
+        record = '; '.join(
+            f"{fields[i]}={row[i]}" for i in range(len(fields))
+        )
+        logger.info(record)
+
+    cursor.close()
+    db.close()
+
+
+if __name__ == "__main__":
+    main()

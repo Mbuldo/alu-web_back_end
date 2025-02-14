@@ -1,120 +1,50 @@
 #!/usr/bin/env python3
 """
-Module for filtering sensitive information from log messages
+Module for logging user data while redacting sensitive information.
 """
-import re
-import os
+
 import logging
-import mysql.connector
+import re
 from typing import List
 
-
-PII_FIELDS = ('name', 'email', 'phone', 'ssn', 'password')
-
-
-def filter_datum(fields: List[str], redaction: str,
-                 message: str, separator: str) -> str:
-    """
-    Obfuscates specified fields in a log message.
-
-    Args:
-        fields: List of strings representing fields to obfuscate
-        redaction: String to replace sensitive information with
-        message: Log line to process
-        separator: Character separating fields in log line
-
-    Returns:
-        Log message with specified fields obfuscated
-    """
-    pattern = f'({"|".join(fields)})=[^{separator}]*'
-    return re.sub(pattern, f'\\1={redaction}', message)
+# Define the PII fields to be redacted
+PII_FIELDS = ("name", "email", "phone", "ssn", "password")
 
 
 class RedactingFormatter(logging.Formatter):
-    """ Redacting Formatter class
-    """
+    """Redacts sensitive PII fields in log messages."""
 
     REDACTION = "***"
-    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
-    SEPARATOR = ";"
+    FORMAT = "[USER_DATA] %(levelname)s %(name)s: %(message)s"
+    SEPARATOR = "; "
 
     def __init__(self, fields: List[str]):
-        super(RedactingFormatter, self).__init__(self.FORMAT)
+        """Initialize formatter with PII fields."""
+        super().__init__(self.FORMAT)
         self.fields = fields
 
     def format(self, record: logging.LogRecord) -> str:
-        """
-        Format log records while redacting sensitive fields.
+        """Redacts sensitive fields before formatting log messages."""
+        record.msg = self.filter_message(record.msg)
+        return super().format(record)
 
-        Args:
-            record: LogRecord instance containing log information
-
-        Returns:
-            Formatted log string with sensitive information redacted
-        """
-        record.msg = filter_datum(self.fields, self.REDACTION,
-                                  record.getMessage(), self.SEPARATOR)
-        return super(RedactingFormatter, self).format(record)
+    def filter_message(self, message: str) -> str:
+        """Redact PII fields in the message."""
+        for field in self.fields:
+            message = re.sub(rf"{field}=[^;]+", f"{field}={self.REDACTION}", message)
+        return message
 
 
 def get_logger() -> logging.Logger:
-    """
-    Creates a logger with specific configuration.
-
-    Returns:
-        logging.Logger: Configured logger object
-    """
+    """Creates and returns a logger with a RedactingFormatter."""
     logger = logging.getLogger("user_data")
     logger.setLevel(logging.INFO)
     logger.propagate = False
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(RedactingFormatter(PII_FIELDS))
-    logger.addHandler(handler)
+    # Create a StreamHandler with RedactingFormatter
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(RedactingFormatter(PII_FIELDS))
 
+    logger.addHandler(stream_handler)
     return logger
 
-
-def get_db() -> mysql.connector.connection.MySQLConnection:
-    """
-    Connect to MySQL database using credentials from environment.
-
-    Returns:
-        MySQLConnection: Database connection object
-    """
-    username = os.getenv('PERSONAL_DATA_DB_USERNAME', 'root')
-    password = os.getenv('PERSONAL_DATA_DB_PASSWORD', '')
-    host = os.getenv('PERSONAL_DATA_DB_HOST', 'localhost')
-    db_name = os.getenv('PERSONAL_DATA_DB_NAME')
-
-    return mysql.connector.connect(
-        user=username,
-        password=password,
-        host=host,
-        database=db_name
-    )
-
-
-def main() -> None:
-    """
-    Retrieve and display filtered user data from database.
-    """
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM users;")
-    
-    logger = get_logger()
-    fields = cursor.column_names
-
-    for row in cursor:
-        record = '; '.join(
-            f"{fields[i]}={row[i]}" for i in range(len(fields))
-        )
-        logger.info(record)
-
-    cursor.close()
-    db.close()
-
-
-if __name__ == "__main__":
-    main()

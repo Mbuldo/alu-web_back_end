@@ -1,50 +1,102 @@
 #!/usr/bin/env python3
 """
-Module for logging user data while redacting sensitive information.
+Module for handling Personal Data
 """
-
-import logging
-import re
 from typing import List
+import re
+import logging
+from os import environ
+import mysql.connector
+from mysql.connector import Error
 
-# Define the PII fields to be redacted
 PII_FIELDS = ("name", "email", "phone", "ssn", "password")
 
 
-class RedactingFormatter(logging.Formatter):
-    """Redacts sensitive PII fields in log messages."""
-
-    REDACTION = "***"
-    FORMAT = "[USER_DATA] %(levelname)s %(name)s: %(message)s"
-    SEPARATOR = "; "
-
-    def __init__(self, fields: List[str]):
-        """Initialize formatter with PII fields."""
-        super().__init__(self.FORMAT)
-        self.fields = fields
-
-    def format(self, record: logging.LogRecord) -> str:
-        """Redacts sensitive fields before formatting log messages."""
-        record.msg = self.filter_message(record.msg)
-        return super().format(record)
-
-    def filter_message(self, message: str) -> str:
-        """Redact PII fields in the message."""
-        for field in self.fields:
-            message = re.sub(rf"{field}=[^;]+", f"{field}={self.REDACTION}", message)
-        return message
+def filter_datum(fields: List[str], redaction: str, message: str, separator: str) -> str:
+    """Returns a log message obfuscated."""
+    for field in fields:
+        message = re.sub(f'{field}=.*?{separator}', f'{field}={redaction}{separator}', message)
+    return message
 
 
 def get_logger() -> logging.Logger:
-    """Creates and returns a logger with a RedactingFormatter."""
+    """Returns a Logger object."""
     logger = logging.getLogger("user_data")
     logger.setLevel(logging.INFO)
     logger.propagate = False
-
-    # Create a StreamHandler with RedactingFormatter
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(RedactingFormatter(PII_FIELDS))
-
+    stream_handler.setFormatter(RedactingFormatter(list(PII_FIELDS)))
     logger.addHandler(stream_handler)
     return logger
 
+
+def get_db() -> mysql.connector.connection.MySQLConnection:
+    """Returns a connector to a MySQL database."""
+    try:
+        username = environ.get("PERSONAL_DATA_DB_USERNAME", "root")
+        password = environ.get("PERSONAL_DATA_DB_PASSWORD", "")
+        host = environ.get("PERSONAL_DATA_DB_HOST", "localhost")
+        db_name = environ.get("PERSONAL_DATA_DB_NAME")
+
+        if not db_name:
+            raise ValueError("Database name is not provided")
+
+        connection = mysql.connector.connect(
+            user=username,
+            password=password,
+            host=host,
+            database=db_name
+        )
+        return connection
+    except Error as e:
+        logging.error(f"Error connecting to database: {e}")
+        return None
+
+
+def main():
+    """
+    Obtain a database connection using get_db and retrieve all rows
+    in the users table and display each row under a filtered format.
+    """
+    db = get_db()
+    if db is None:
+        return
+
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM users;")
+        field_names = [i[0] for i in cursor.description]
+
+        logger = get_logger()
+
+        for row in cursor:
+            str_row = ''.join(
+                f'{field}={str(value)}; ' for value, field in zip(row, field_names)
+            )
+            logger.info(str_row.strip())
+
+        cursor.close()
+    except Error as e:
+        logging.error(f"Error fetching data: {e}")
+    finally:
+        db.close()
+
+
+class RedactingFormatter(logging.Formatter):
+    """Redacting Formatter class."""
+    REDACTION = "***"
+    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
+    SEPARATOR = ";"
+
+    def __init__(self, fields: List[str]):
+        super(RedactingFormatter, self).__init__(self.FORMAT)
+        self.fields = fields
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Filters values in incoming log records using filter_datum."""
+        record.msg = filter_datum(self.fields, self.REDACTION, record.getMessage(), self.SEPARATOR)
+        return super(RedactingFormatter, self).format(record)
+
+
+if __name__ == '__main__':
+    main()
